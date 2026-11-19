@@ -66,7 +66,11 @@ th,td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line);ve
 th{position:sticky;top:0;background:var(--panel);z-index:1;font-size:.8rem;color:var(--dim)}
 tr.off td{color:var(--dim)}
 select.pick{display:block;margin-top:.35rem;max-width:22rem;font-size:.85rem;padding:.25rem .3rem}
-td.why{color:var(--dim);font-size:.85rem}
+td.why,span.why{color:var(--dim);font-size:.85rem}
+.again{margin-left:.5rem;padding:.1rem .45rem;font-size:.75rem;cursor:pointer;
+  background:none;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
+.again:hover{border-color:var(--accent);color:var(--accent)}
+#verdict{margin:.75rem 0 0;font-size:.95rem;color:var(--ink)}
 td.tick{width:2rem}
 .tag{display:inline-block;padding:.05rem .4rem;border-radius:4px;font-size:.75rem;
   font-weight:600;white-space:nowrap}
@@ -182,22 +186,26 @@ deliveries, openings, closings. It checks Skimmer first and skips anyone who alr
 
 <!-- ───────────────── check ───────────────── -->
 <section class="card" id="sec-check" hidden>
-  <div class="step"><span class="num">3</span><b>Check the list</b></div>
-  <p class="note">This only reads from Skimmer. Nothing is created until you press the
-  button at the bottom.</p>
+  <div class="step"><span class="num">3</span><b>See who would get one</b></div>
+  <p class="note">This reads from Skimmer and writes nothing. For each customer you chose it
+  finds their pool — or both pools, if they have two — and checks whether that pool already
+  has a work order of this type within 120 days either side of your date. Anything that
+  already has one is left out, so running this twice can never double-book anybody. What is
+  left, you tick.</p>
   <div class="bar">
-    <button class="button" id="check">Check the list</button>
+    <button class="button" id="check">Look them up in Skimmer</button>
     <span class="note" id="checknote"></span>
   </div>
   <div class="msg bad" id="checkmsg" hidden></div>
 
   <div id="result" hidden>
+    <p id="verdict"></p>
     <div class="counts">
       <span><b id="c-make">0</b> to create</span>
       <span><b id="c-skip">0</b> already have one</span>
       <span><b id="c-none">0</b> not found in Skimmer</span>
     </div>
-    <div class="bar">
+    <div class="bar" id="allbar" hidden>
       <button class="button ghost" id="all-on">Tick all of them</button>
       <button class="button ghost" id="all-off">Untick all of them</button>
     </div>
@@ -239,6 +247,7 @@ Heschmeyer Pools, internal. This page holds no customer data and no keys — eve
 load or type stays in your own browser.
 </p>
 
+<p class="note" id="build" style="text-align:center;margin:1.5rem 0 0">version 2026-11-19</p>
 </main>
 <script>
 "use strict";
@@ -713,9 +722,27 @@ function poolRow(c, p, multi, note){
     state: seen ? "skip" : "make",
     on: seen ? false : (note ? false : true),
     name: custName(c), pool: norm(p.address || ""),
-    customerId: c.id, locationId: p.id, multi: multi,
-    why: seen ? "Already has one dated " + seen + "." : note
+    customerId: c.id, locationId: p.id, multi: multi, had: seen || null,
+    why: seen ? "Already has one dated " + seen + ", inside the 120 days either side of "
+      + ($("#date").value || "your date") + "." : note
   };
+}
+
+/* One sentence saying what the table means, because three numbers do not say it. */
+function verdict(n){
+  var type = ($("#type").selectedOptions[0] || {}).textContent || "work order";
+  var date = $("#date").value || "your date";
+  var pools = n.make + n.skip;
+  var out = pools ? (pools === 1 ? "1 pool" : pools + " pools") + " found in Skimmer" : "Nothing found in Skimmer";
+  if (n.none) out += ", and " + n.none + (n.none === 1 ? " name I could not match" : " names I could not match");
+  out += ". ";
+  if (n.make && n.skip) out += n.make + " can be created. The other " + n.skip +
+    (n.skip === 1 ? " already has" : " already have") + " a " + type + " near " + date + ", so " +
+    (n.skip === 1 ? "it is" : "they are") + " left out.";
+  else if (n.make) out += (n.make === 1 ? "It can be created — tick it" : "All " + n.make + " can be created — tick the ones you want") + ".";
+  else if (n.skip) out += "Nothing to create: " + (n.skip === 1 ? "that pool already has" : "all " + n.skip + " already have") +
+    " a " + type + " near " + date + ". If you really do want another one, press “create anyway” on the row.";
+  return out;
 }
 
 /* Picking a suggestion replaces the unmatched row with that customer's pools,
@@ -774,6 +801,20 @@ function drawPlan(){
       sp.textContent = " " + r.why;
       td4.appendChild(sp);
     }
+    /* A skip is a default, not a wall: a pool can genuinely need a second visit. */
+    if (r.state === "skip"){
+      var again = document.createElement("button");
+      again.type = "button";
+      again.className = "again";
+      again.textContent = "create anyway";
+      again.addEventListener("click", function(){
+        r.state = "make";
+        r.on = false;
+        r.why = "You asked for a second one. This pool already has one dated " + r.had + ".";
+        drawPlan();
+      });
+      td4.appendChild(again);
+    }
     if (r.state === "none" && r.cand && r.cand.length){
       var pick = document.createElement("select");
       pick.className = "pick";
@@ -796,6 +837,9 @@ function drawPlan(){
   text("#c-make", String(n.make));
   text("#c-skip", String(n.skip));
   text("#c-none", String(n.none));
+  text("#verdict", verdict(n));
+  /* Buttons that cannot do anything look broken, so only show them when they can. */
+  show("#allbar", n.make > 1);
   show("#result", true);
   countUp();
 }
