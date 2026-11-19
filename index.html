@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Heschmeyer Pools — Work Orders</title>
+<style>
+:root{
+  --ink:#1d2329; --dim:#5b6670; --line:#dde3e8; --bg:#f6f8f9; --panel:#fff;
+  --accent:#1f6f8b; --good:#1d6f42; --warn:#8a5a00; --bad:#9b2c2c;
+  --goodbg:#eef7f1; --warnbg:#fdf6e7; --badbg:#fdeeee;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --ink:#e6ebef; --dim:#9aa6b0; --line:#2b3238; --bg:#15191c; --panel:#1b2024;
+    --accent:#6ab6cf; --good:#7bc99a; --warn:#e0b35e; --bad:#e08a8a;
+    --goodbg:#1a2620; --warnbg:#2a2418; --badbg:#2a1c1c; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+main{max-width:56rem;margin:0 auto;padding:1.5rem 1rem 5rem}
+h1{font-size:1.5rem;margin:0 0 .25rem}
+h2{font-size:1.05rem;margin:0 0 .75rem}
+p{margin:.5rem 0}
+.lede{color:var(--dim);margin:0 0 1.5rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:1rem 1.1rem;margin:0 0 1rem}
+.card[hidden]{display:none}
+.step{display:flex;align-items:baseline;gap:.5rem;margin:0 0 .75rem}
+.step b{font-size:1.05rem}
+.num{display:inline-flex;align-items:center;justify-content:center;flex:0 0 1.6rem;
+  width:1.6rem;height:1.6rem;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:.85rem;font-weight:600}
+label{display:block;font-size:.85rem;color:var(--dim);margin:.6rem 0 .2rem}
+input[type=text],input[type=password],input[type=date],input[type=number],select,textarea{
+  width:100%;padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;
+  background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:4.5rem;resize:vertical}
+.row{display:flex;gap:.75rem;flex-wrap:wrap}
+.row>div{flex:1 1 12rem;min-width:0}
+.button{display:inline-block;padding:.55rem 1rem;border:1px solid var(--accent);
+  border-radius:6px;background:var(--accent);color:#fff;font:inherit;cursor:pointer}
+.button:hover{filter:brightness(1.08)}
+.button:disabled{opacity:.45;cursor:default;filter:none}
+.button.ghost{background:transparent;color:var(--accent)}
+.button.danger{background:var(--bad);border-color:var(--bad)}
+.bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:1rem}
+.note{font-size:.85rem;color:var(--dim)}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}
+.chip{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .6rem;
+  border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:.9rem;
+  background:var(--bg);user-select:none}
+.chip input{margin:0}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+button.chip{font:inherit;color:inherit}
+button.chip.on{background:var(--panel)}
+.msg{padding:.6rem .8rem;border-radius:6px;margin:.75rem 0 0;font-size:.9rem}
+.msg.ok{background:var(--goodbg);color:var(--good)}
+.msg.warn{background:var(--warnbg);color:var(--warn)}
+.msg.bad{background:var(--badbg);color:var(--bad)}
+.msg[hidden]{display:none}
+.tablewrap{max-height:28rem;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:.75rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{position:sticky;top:0;background:var(--panel);z-index:1;font-size:.8rem;color:var(--dim)}
+tr.off td{color:var(--dim)}
+select.pick{display:block;margin-top:.35rem;max-width:22rem;font-size:.85rem;padding:.25rem .3rem}
+td.why{color:var(--dim);font-size:.85rem}
+td.tick{width:2rem}
+.tag{display:inline-block;padding:.05rem .4rem;border-radius:4px;font-size:.75rem;
+  font-weight:600;white-space:nowrap}
+.tag.make{background:var(--goodbg);color:var(--good)}
+.tag.skip{background:var(--warnbg);color:var(--warn)}
+.tag.none{background:var(--badbg);color:var(--bad)}
+.counts{display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:.75rem;font-size:.9rem}
+.counts b{font-size:1.25rem;display:block}
+progress{width:100%;height:.6rem}
+pre{white-space:pre-wrap;word-break:break-word;font-size:.8rem;background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;padding:.6rem;max-height:18rem;overflow:auto}
+.key-ok{color:var(--good);font-weight:600}
+@media (max-width:40rem){ main{padding:1rem .75rem 4rem} .row>div{flex:1 1 100%} }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Work Orders</h1>
+<p class="lede">Creates the same work order for a whole list of customers at once — gift
+deliveries, openings, closings. It checks Skimmer first and skips anyone who already has one.</p>
+
+<!-- ───────────────── connection ───────────────── -->
+<section class="card" id="sec-key">
+  <div class="step"><span class="num">0</span><b>Connect to Skimmer</b></div>
+  <p class="note">Paste the API key Ben gave you. It is kept in this browser on this computer
+  only — it is never sent anywhere except to Skimmer, and it is not part of this page.</p>
+  <label for="key">Skimmer API key</label>
+  <input type="password" id="key" autocomplete="off" spellcheck="false" placeholder="paste the key here">
+  <div class="bar">
+    <button class="button" id="connect">Connect</button>
+    <button class="button ghost" id="forget" hidden>Forget this key</button>
+    <span id="keystate" class="note"></span>
+  </div>
+  <div class="msg bad" id="keymsg" hidden></div>
+</section>
+
+<!-- ───────────────── the work order ───────────────── -->
+<section class="card" id="sec-what" hidden>
+  <div class="step"><span class="num">1</span><b>What are you creating?</b></div>
+  <div class="row">
+    <div>
+      <label for="type">Work order type</label>
+      <select id="type"></select>
+    </div>
+    <div>
+      <label for="date">Service date</label>
+      <input type="date" id="date">
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label for="tech">Assign to (optional)</label>
+      <select id="tech"><option value="">— leave unassigned —</option></select>
+    </div>
+    <div>
+      <label for="minutes">Estimated minutes</label>
+      <input type="number" id="minutes" min="0" step="5">
+    </div>
+  </div>
+  <label for="needed">Work needed — the instructions the tech sees</label>
+  <textarea id="needed" placeholder="e.g. Please Deliver End of Season Gift -- take photo"></textarea>
+  <div class="note" id="suggest"></div>
+</section>
+
+<!-- ───────────────── who ───────────────── -->
+<section class="card" id="sec-who" hidden>
+  <div class="step"><span class="num">2</span><b>Who is it for?</b></div>
+
+  <div class="chips" id="modechips">
+    <button type="button" class="chip on" id="mode-group">A whole group</button>
+    <button type="button" class="chip" id="mode-pick">Just the people I pick</button>
+  </div>
+
+  <div id="who-group">
+    <label>Service day <span id="daysrc"></span></label>
+    <div class="chips" id="daychips"></div>
+
+    <label>Customer type</label>
+    <div class="chips" id="catchips"></div>
+
+    <label for="search">Narrow by name (optional)</label>
+    <input type="text" id="search" placeholder="type part of a name">
+
+    <div class="msg warn" id="dayswarn" hidden></div>
+
+    <div class="bar">
+      <button class="button ghost" id="loaddays">Load the customer-day list…</button>
+      <input type="file" id="daysfile" accept=".json,application/json" hidden>
+      <span class="note" id="daysnote"></span>
+    </div>
+  </div>
+
+  <div id="who-pick" hidden>
+    <label for="pick">Find a customer</label>
+    <input type="text" id="pick" placeholder="start typing a name" autocomplete="off" spellcheck="false">
+    <div class="chips" id="pickhits"></div>
+
+    <label for="paste">Or paste a list of names, one per line</label>
+    <textarea id="paste" placeholder="JODI ABBOTT&#10;AQUA-TOTS"></textarea>
+    <div class="bar">
+      <button class="button ghost" id="addpaste">Add these names</button>
+      <span class="note" id="pastenote"></span>
+    </div>
+
+    <label>Chosen — click one to take it off the list</label>
+    <div class="chips" id="basket"></div>
+    <p class="note" id="basketnote">Nobody chosen yet.</p>
+  </div>
+
+  <p class="note" id="whocount"></p>
+</section>
+
+<!-- ───────────────── check ───────────────── -->
+<section class="card" id="sec-check" hidden>
+  <div class="step"><span class="num">3</span><b>Check the list</b></div>
+  <p class="note">This only reads from Skimmer. Nothing is created until you press the
+  button at the bottom.</p>
+  <div class="bar">
+    <button class="button" id="check">Check the list</button>
+    <span class="note" id="checknote"></span>
+  </div>
+  <div class="msg bad" id="checkmsg" hidden></div>
+
+  <div id="result" hidden>
+    <div class="counts">
+      <span><b id="c-make">0</b> to create</span>
+      <span><b id="c-skip">0</b> already have one</span>
+      <span><b id="c-none">0</b> not found in Skimmer</span>
+    </div>
+    <div class="bar">
+      <button class="button ghost" id="all-on">Tick all of them</button>
+      <button class="button ghost" id="all-off">Untick all of them</button>
+    </div>
+    <div class="tablewrap">
+      <table id="table">
+        <thead><tr><th class="tick"></th><th>Customer</th><th>Pool</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── create ───────────────── -->
+<section class="card" id="sec-go" hidden>
+  <div class="step"><span class="num">4</span><b>Create them</b></div>
+  <div class="msg warn">Skimmer has no undo for this. A work order created by mistake has to
+  be edited or cancelled by hand, one at a time. Read the list above before you press.</div>
+  <div class="bar">
+    <button class="button" id="go">Create them in Skimmer</button>
+  </div>
+  <div id="progress" hidden>
+    <p class="note" id="goline">Working…</p>
+    <progress id="pbar" value="0" max="1"></progress>
+  </div>
+</section>
+
+<!-- ───────────────── receipt ───────────────── -->
+<section class="card" id="sec-receipt" hidden>
+  <div class="step"><span class="num">✓</span><b>Receipt</b></div>
+  <div class="msg ok" id="rsum"></div>
+  <div class="bar">
+    <button class="button ghost" id="save">Save the receipt</button>
+  </div>
+  <pre id="rbody"></pre>
+</section>
+
+<p class="note" style="margin-top:2rem">
+Heschmeyer Pools, internal. This page holds no customer data and no keys — everything you
+load or type stays in your own browser.
+</p>
+
+</main>
+<script>
+"use strict";
+
+/* ───────────────────────── constants ─────────────────────────
+   Everything here was measured against the live Skimmer API in Nov 2026 and is
+   written up in the Billing app's SKIMMER_API_HANDOFF.md §4.5. The two rules
+   that must never be softened:
+
+   1. A POST is NEVER retried. Skimmer has no idempotency key and no DELETE,
+      so a retry that the first attempt actually completed is a duplicate work
+      order nobody can remove. A write with no answer is UNCONFIRMED: it is
+      settled by SEARCHING, never by sending again. A 429 is the one safe
+      exception, because a refused request was never processed.
+
+   2. The duplicate guard uses a SEASON window, not one date. Last season's
+      gift deliveries went out over five dates, so a same-date check would let
+      a second batch double up on the first. "Ever" is equally wrong: 171
+      pools carry two gift deliveries and every pair is last year plus this
+      year. +/- 120 days covers gifts, closings and openings without reaching
+      the season before.                                                    */
+
+var API = "https://publicapi.getskimmer.com";
+var SEASON_DAYS = 120;
+var PACE_MS = 250;                 /* 240/min, against a 500/min limit */
+var LS = { key: "hpwo.key", days: "hpwo.days", text: "hpwo.text" };
+var DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+var state = {
+  key: "", types: [], techs: [], customers: [], locations: [],
+  byCustomer: null, byKey: null, days: null, had: null, plan: null, receipt: null,
+  mode: "group", basket: []
+};
+
+/* ───────────────────────── small helpers ───────────────────────── */
+function $(s){ return document.querySelector(s); }
+function show(sel, on){ $(sel).hidden = !on; }
+function text(sel, s){ $(sel).textContent = s; }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function norm(v){ return String(v == null ? "" : v).replace(/\s+/g, " ").trim(); }
+
+/* The Billing app's matchKey(), ported exactly. The Invoicing Report renders a
+   name WITH its parenthetical note attached and Skimmer gives the bare name, so
+   truncate at the first bracket rather than stripping bracketed spans. */
+function matchKey(v){
+  var s = String(v == null ? "" : v);
+  var i = s.indexOf("(");
+  if (i >= 0) s = s.slice(0, i);
+  return norm(s.replace(/[^A-Za-z0-9&'. -]/g, "").replace(/[\s\-.]+$/, "")).toUpperCase();
+}
+function custName(c){
+  return (c.displayAsCompany && c.companyName)
+    ? norm(c.companyName)
+    : norm((c.firstName || "") + " " + (c.lastName || ""));
+}
+function shiftDay(d, n){
+  var t = new Date(d + "T12:00:00");
+  t.setDate(t.getDate() + n);
+  return t.toISOString().slice(0, 10);
+}
+function today(){ return new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); }
+/* "Tuesday & Friday" -> ["Tuesday","Friday"] */
+function daysOf(s){ return String(s || "").split("&").map(norm).filter(Boolean); }
+function servedOn(days, day){
+  return daysOf(days).some(function(d){ return d.toLowerCase() === String(day||"").toLowerCase(); });
+}
+function err(msg, unconfirmed){
+  var e = new Error(msg);
+  if (unconfirmed) e.unconfirmed = true;
+  return e;
+}
+
+/* ───────────────────────── the API ─────────────────────────
+   opt.retries = 0 for every write. See rule 1 above.                     */
+async function call(method, path, body, opt){
+  opt = opt || {};
+  var retries = opt.retries == null ? 3 : opt.retries;
+  var throttled = 0;
+  for (var attempt = 0; ; attempt++){
+    var r = null;
+    try {
+      var headers = { "skimmer-api-key": state.key };
+      if (body) headers["content-type"] = "application/json";
+      r = await fetch(API + path, {
+        method: method, headers: headers,
+        body: body ? JSON.stringify(body) : undefined
+      });
+    } catch (e) {
+      if (attempt < retries) { await sleep(700 * (attempt + 1)); continue; }
+      throw err("Skimmer did not answer (" + e.message + ").", true);
+    }
+    if (r.status === 429){
+      /* Refused, therefore never processed: waiting and sending again is safe. */
+      if (throttled++ > 6) throw err("Skimmer is still rate-limiting. Try again in a minute.");
+      var wait = Number(r.headers.get("retry-after") || 0) || 5;
+      await sleep(wait * 1000);
+      continue;
+    }
+    if (r.status >= 500){
+      if (attempt < retries) { await sleep(700 * (attempt + 1)); continue; }
+      throw err("Skimmer answered " + r.status + ".", true);
+    }
+    if (r.status === 401 || r.status === 403) throw err("Skimmer refused the key (" + r.status + ").");
+    if (!r.ok){
+      var t = await r.text().catch(function(){ return ""; });
+      throw err(r.status + " " + (t.slice(0, 200) || r.statusText));
+    }
+    var body2 = await r.text();
+    return body2 ? JSON.parse(body2) : null;
+  }
+}
+
+async function pageAll(path, filters, onPage){
+  var out = [], size = 200;
+  for (var p = 1; p < 500; p++){
+    var q = new URLSearchParams({ Page: String(p), PageSize: String(size) });
+    if (filters) q.set("Filters", filters);
+    var rows = await call("GET", path + "?" + q.toString());
+    if (!Array.isArray(rows) || !rows.length) break;
+    for (var i = 0; i < rows.length; i++) out.push(rows[i]);
+    if (onPage) onPage(out.length);
+    if (rows.length < size) break;
+  }
+  return out;
+}
+
+/* ───────────────────────── connecting ───────────────────────── */
+async function connect(k){
+  state.key = k;
+  text("#keystate", "checking…");
+  show("#keymsg", false);
+  try {
+    var users = await call("GET", "/Users");
+    state.techs = (users || []).filter(function(u){ return u.isActive !== false; });
+  } catch (e) {
+    state.key = "";
+    $("#keymsg").textContent = e.message;
+    show("#keymsg", true);
+    text("#keystate", "");
+    return false;
+  }
+  try { localStorage.setItem(LS.key, k); } catch (e) {}
+  $("#key").value = "";
+  $("#key").placeholder = "connected";
+  $("#key").disabled = true;
+  $("#connect").hidden = true;
+  $("#forget").hidden = false;
+  $("#keystate").innerHTML = '<span class="key-ok">Connected.</span>';
+  await loadReference();
+  return true;
+}
+
+async function loadReference(){
+  text("#keystate", "Connected. Loading customers…");
+  var types = await call("GET", "/WorkOrderTypes");
+  state.types = (types || []).filter(function(t){ return !t.deleted; })
+    .sort(function(a, b){ return String(a.description).localeCompare(String(b.description)); });
+
+  state.customers = (await pageAll("/Customers/search", null, function(n){
+    text("#keystate", "Connected. Loading customers… " + n);
+  })).filter(function(c){ return !c.deleted; });
+
+  state.locations = (await pageAll("/ServiceLocations/search", null, function(n){
+    text("#keystate", "Connected. Loading pools… " + n);
+  })).filter(function(l){ return !l.deleted; });
+
+  state.byCustomer = new Map();
+  state.locations.forEach(function(l){
+    var a = state.byCustomer.get(l.customerId) || [];
+    a.push(l);
+    state.byCustomer.set(l.customerId, a);
+  });
+  state.byKey = new Map();
+  state.customers.forEach(function(c){
+    var k = matchKey(custName(c));
+    if (!k) return;
+    var a = state.byKey.get(k) || [];
+    a.push(c);
+    state.byKey.set(k, a);
+  });
+
+  $("#keystate").innerHTML = '<span class="key-ok">Connected.</span> ' +
+    state.customers.length + " customers, " + state.locations.length + " pools.";
+  fillForm();
+  whoCount();
+  show("#sec-what", true);
+  show("#sec-who", true);
+  show("#sec-check", true);
+}
+
+function fillForm(){
+  var sel = $("#type");
+  sel.innerHTML = '<option value="">— choose —</option>';
+  state.types.forEach(function(t){
+    var o = document.createElement("option");
+    o.value = t.id;
+    o.textContent = t.description;
+    sel.appendChild(o);
+  });
+  var tech = $("#tech");
+  tech.innerHTML = '<option value="">— leave unassigned —</option>';
+  state.techs.slice().sort(function(a,b){
+    return norm(a.firstName+" "+a.lastName).localeCompare(norm(b.firstName+" "+b.lastName));
+  }).forEach(function(u){
+    var o = document.createElement("option");
+    o.value = u.id;
+    o.textContent = norm((u.firstName||"") + " " + (u.lastName||""));
+    tech.appendChild(o);
+  });
+  if (!$("#date").value) $("#date").value = today();
+  drawChips();
+}
+
+/* ───────────────────────── who: the filters ───────────────────────── */
+function drawChips(){
+  var d = $("#daychips");
+  d.innerHTML = "";
+  DAYS.forEach(function(day){
+    var l = document.createElement("label");
+    l.className = "chip";
+    l.innerHTML = '<input type="checkbox" value="' + day + '"> ' + day.slice(0, 3);
+    d.appendChild(l);
+  });
+  var cats = state.days
+    ? Array.from(new Set(state.days.map(function(c){ return c.cat || "Unclassified"; }))).sort()
+    : [];
+  var c = $("#catchips");
+  c.innerHTML = "";
+  cats.forEach(function(cat){
+    var l = document.createElement("label");
+    l.className = "chip";
+    l.innerHTML = '<input type="checkbox" value="' + cat + '"> ' + cat;
+    c.appendChild(l);
+  });
+  document.querySelectorAll(".chip input").forEach(function(i){
+    i.addEventListener("change", function(){
+      i.closest(".chip").classList.toggle("on", i.checked);
+      whoCount();
+    });
+  });
+  var have = !!state.days;
+  text("#daysrc", have ? "(from the Billing day list)" : "");
+  $("#dayswarn").innerHTML = have ? "" :
+    "No customer-day list is loaded, so the day and customer-type filters are off. " +
+    "Everyone in Skimmer is a candidate — narrow by name below, or load the list Ben exports " +
+    "from the Billing app.";
+  show("#dayswarn", !have);
+  $("#daychips").style.opacity = have ? "1" : ".4";
+  $("#catchips").style.opacity = have ? "1" : ".4";
+  document.querySelectorAll("#daychips input,#catchips input").forEach(function(i){ i.disabled = !have; });
+}
+
+function ticked(sel){
+  return Array.from(document.querySelectorAll(sel + " input:checked")).map(function(i){ return i.value; });
+}
+
+/* ── picking people one at a time ────────────────────────────────────────
+   A chosen person carries their Skimmer customerId, so a name the Billing
+   list spells differently — or somebody who is not in the Billing list at all
+   — still works. A pasted name that matches nothing is kept anyway and lands
+   in the table as "no match" with suggestions, rather than being dropped
+   silently. */
+
+function setMode(m){
+  state.mode = m;
+  $("#mode-group").classList.toggle("on", m === "group");
+  $("#mode-pick").classList.toggle("on", m === "pick");
+  show("#who-group", m === "group");
+  show("#who-pick", m === "pick");
+  whoCount();
+}
+
+function pickHits(q){
+  q = norm(q).toLowerCase();
+  if (q.length < 2) return [];
+  return state.customers.filter(function(c){
+    return custName(c).toLowerCase().indexOf(q) >= 0;
+  }).sort(function(a, b){ return custName(a).localeCompare(custName(b)); }).slice(0, 10);
+}
+
+function drawPickHits(){
+  var box = $("#pickhits");
+  box.innerHTML = "";
+  pickHits($("#pick").value).forEach(function(c){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = custName(c) + (c.isInactive ? "  (inactive)" : "");
+    b.addEventListener("click", function(){
+      addToBasket(custName(c), c.id);
+      $("#pick").value = "";
+      drawPickHits();
+    });
+    box.appendChild(b);
+  });
+}
+
+function addToBasket(name, customerId){
+  var already = state.basket.some(function(b){
+    return customerId ? b.customerId === customerId : (!b.customerId && b.name === name);
+  });
+  if (already) return false;
+  state.basket.push({ name: name, customerId: customerId || null });
+  drawBasket();
+  return true;
+}
+
+function drawBasket(){
+  var box = $("#basket");
+  box.innerHTML = "";
+  state.basket.forEach(function(b, i){
+    var el = document.createElement("button");
+    el.type = "button";
+    el.className = "chip on";
+    el.textContent = b.name + (b.customerId ? "" : "  (not matched yet)") + "  \u00d7";
+    el.title = "take off the list";
+    el.addEventListener("click", function(){ state.basket.splice(i, 1); drawBasket(); });
+    box.appendChild(el);
+  });
+  text("#basketnote", state.basket.length
+    ? state.basket.length + (state.basket.length === 1 ? " chosen." : " chosen.")
+    : "Nobody chosen yet.");
+  whoCount();
+}
+
+function addPaste(){
+  var lines = String($("#paste").value || "").split(/[\n\r;]+/).map(norm).filter(Boolean);
+  if (!lines.length) return;
+  var matched = 0, unmatched = 0, dup = 0;
+  lines.forEach(function(l){
+    var hits = state.byKey.get(matchKey(l)) || [];
+    var added;
+    if (hits.length === 1){ added = addToBasket(custName(hits[0]), hits[0].id); matched++; }
+    else { added = addToBasket(l, null); unmatched++; }
+    if (!added) dup++;
+  });
+  $("#paste").value = "";
+  text("#pastenote", matched + " matched" +
+    (unmatched ? ", " + unmatched + " to sort out when you check the list" : "") +
+    (dup ? ", " + dup + " already there" : "") + ".");
+}
+
+function whoCount(){
+  if (!state.customers.length) return;
+  var n = candidates().length;
+  text("#whocount", n ? n + (n === 1 ? " customer selected." : " customers selected.")
+                      : "Nobody selected yet.");
+  show("#result", false);
+  show("#sec-go", false);
+}
+
+/* The candidate names, before Skimmer is consulted. */
+function candidates(){
+  if (state.mode === "pick"){
+    return state.basket.map(function(b){ return { name: b.name, customerId: b.customerId }; });
+  }
+  var wantDays = ticked("#daychips"), wantCats = ticked("#catchips");
+  var q = norm($("#search").value).toLowerCase();
+  var rows;
+  if (state.days){
+    rows = state.days.filter(function(c){
+      if (wantDays.length && !wantDays.some(function(d){ return servedOn(c.days, d); })) return false;
+      if (wantCats.length && wantCats.indexOf(c.cat || "Unclassified") < 0) return false;
+      return true;
+    }).map(function(c){ return { name: c.name, days: c.days, cat: c.cat }; });
+  } else {
+    rows = state.customers.map(function(c){ return { name: custName(c), days: "", cat: "" }; });
+  }
+  if (q) rows = rows.filter(function(r){ return r.name.toLowerCase().indexOf(q) >= 0; });
+  return rows;
+}
+
+/* ───────────────────────── check ─────────────────────────
+
+   A name that does not match is usually a house that changed hands, and
+   Skimmer keeps that history in the name itself — "CHANCE LOWE (Formerly Bob
+   & Amy Dunn)", "ANDRES BUR sold Nov 2026", "CASSIE DIETRICH (Formerly Mike
+   Hill home)". So this SUGGESTS and never decides: the candidates are shown
+   with that text and with an inactive flag, and somebody has to pick one and
+   tick it. Matching on surname by itself would post a gift delivery to a
+   house Heschmeyer no longer services. Measured 2026-11-19: of 705 Billing
+   customers, 691 match a live Skimmer customer outright, 2 are ambiguous and
+   12 need a human — and most of those 12 are correctly unmatched.           */
+
+function suggestions(name){
+  var parts = norm(name).split(/\s+/);
+  var last = (parts[parts.length - 1] || "").toUpperCase();
+  if (last.length < 3) return [];
+  return state.customers.filter(function(c){
+    return custName(c).toUpperCase().indexOf(last) >= 0;
+  }).slice(0, 8);
+}
+
+async function check(){
+  var typeId = $("#type").value;
+  var date = $("#date").value;
+  show("#checkmsg", false);
+  if (!typeId || !date){
+    $("#checkmsg").textContent = "Choose a work order type and a service date first.";
+    show("#checkmsg", true);
+    return;
+  }
+  var names = candidates();
+  if (!names.length){
+    $("#checkmsg").textContent = state.mode === "pick"
+      ? "Nobody is chosen yet — find a customer by name, or paste a list."
+      : "No customers match those filters.";
+    show("#checkmsg", true);
+    return;
+  }
+
+  $("#check").disabled = true;
+  text("#checknote", "reading Skimmer…");
+
+  /* Every work order of this type anywhere in the season window. */
+  var from = shiftDay(date, -SEASON_DAYS), to = shiftDay(date, SEASON_DAYS);
+  var existing;
+  try {
+    existing = await pageAll("/WorkOrders/search",
+      "WorkOrderTypeId==" + typeId + ",ServiceDate>=" + from + ",ServiceDate<=" + to,
+      function(n){ text("#checknote", "reading Skimmer… " + n + " existing"); });
+  } catch (e) {
+    $("#checkmsg").textContent = "Could not read Skimmer: " + e.message;
+    show("#checkmsg", true);
+    $("#check").disabled = false;
+    text("#checknote", "");
+    return;
+  }
+  var had = new Map();
+  existing.forEach(function(w){
+    if (w.deleted) return;
+    if (!had.has(w.serviceLocationId)) had.set(w.serviceLocationId, w.serviceDate);
+  });
+  state.had = had;
+
+  /* Resolve each name to its customer and its pools. */
+  var plan = [];
+  names.forEach(function(n){
+    /* Chosen by hand? Then the id is already settled; do not re-match a name. */
+    var hits = n.customerId
+      ? state.customers.filter(function(c){ return c.id === n.customerId; })
+      : (state.byKey.get(matchKey(n.name)) || []);
+    if (hits.length !== 1){
+      plan.push({
+        state: "none", name: n.name, pool: "",
+        why: hits.length ? "Two customers in Skimmer have this name." : "No customer of this name in Skimmer.",
+        cand: hits.length ? hits : suggestions(n.name)
+      });
+      return;
+    }
+    var c = hits[0];
+    var pools = state.byCustomer.get(c.id) || [];
+    if (!pools.length){
+      plan.push({ state: "none", name: n.name, pool: "", why: "No pool on this customer in Skimmer.", cand: [] });
+      return;
+    }
+    pools.forEach(function(p){ plan.push(poolRow(c, p, pools.length > 1, "")); });
+  });
+
+  plan.sort(function(a, b){ return a.name.localeCompare(b.name); });
+  state.plan = plan;
+  drawPlan();
+  $("#check").disabled = false;
+  text("#checknote", "read " + existing.length + " existing " +
+    $("#type").selectedOptions[0].textContent + " work orders dated " + from + " to " + to + ".");
+  show("#sec-go", true);
+}
+
+function poolRow(c, p, multi, note){
+  var seen = state.had.get(p.id);
+  return {
+    state: seen ? "skip" : "make",
+    on: seen ? false : (note ? false : true),
+    name: custName(c), pool: norm(p.address || ""),
+    customerId: c.id, locationId: p.id, multi: multi,
+    why: seen ? "Already has one dated " + seen + "." : note
+  };
+}
+
+/* Picking a suggestion replaces the unmatched row with that customer's pools,
+   UNTICKED — a hand-made match is confirmed twice or not at all. */
+function resolveRow(i, customerId){
+  var r = state.plan[i];
+  var c = state.customers.filter(function(x){ return x.id === customerId; })[0];
+  if (!c || !r) return;
+  var pools = state.byCustomer.get(c.id) || [];
+  if (!pools.length){
+    r.why = "“" + custName(c) + "” has no pool in Skimmer.";
+    drawPlan();
+    return;
+  }
+  var note = "Picked by hand for “" + r.name + "” — tick it to create it.";
+  var rows = pools.map(function(p){ return poolRow(c, p, pools.length > 1, note); });
+  state.plan.splice.apply(state.plan, [i, 1].concat(rows));
+  drawPlan();
+}
+
+function drawPlan(){
+  var body = $("#table").querySelector("tbody");
+  body.innerHTML = "";
+  var n = { make: 0, skip: 0, none: 0 };
+  state.plan.forEach(function(r, i){
+    n[r.state]++;
+    var tr = document.createElement("tr");
+    if (r.state !== "make") tr.className = "off";
+
+    var td1 = document.createElement("td");
+    td1.className = "tick";
+    if (r.state === "make"){
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = (r.on == null) ? true : !!r.on;
+      cb.dataset.i = String(i);
+      cb.addEventListener("change", function(){ r.on = cb.checked; countUp(); });
+      r.on = cb.checked;
+      td1.appendChild(cb);
+    }
+
+    var td2 = document.createElement("td");
+    td2.textContent = r.name;
+
+    var td3 = document.createElement("td");
+    td3.textContent = r.pool + (r.multi ? "  (one of two pools)" : "");
+
+    var td4 = document.createElement("td");
+    var tag = document.createElement("span");
+    tag.className = "tag " + r.state;
+    tag.textContent = r.state === "make" ? "create" : r.state === "skip" ? "has one" : "no match";
+    td4.appendChild(tag);
+    if (r.why){
+      var sp = document.createElement("span");
+      sp.className = "why";
+      sp.textContent = " " + r.why;
+      td4.appendChild(sp);
+    }
+    if (r.state === "none" && r.cand && r.cand.length){
+      var pick = document.createElement("select");
+      pick.className = "pick";
+      pick.innerHTML = '<option value="">— is it one of these? —</option>';
+      r.cand.forEach(function(c){
+        var o = document.createElement("option");
+        o.value = c.id;
+        o.textContent = custName(c) + (c.isInactive ? "  (inactive)" : "");
+        pick.appendChild(o);
+      });
+      pick.addEventListener("change", function(){
+        if (pick.value) resolveRow(i, pick.value);
+      });
+      td4.appendChild(pick);
+    }
+
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+    body.appendChild(tr);
+  });
+  text("#c-make", String(n.make));
+  text("#c-skip", String(n.skip));
+  text("#c-none", String(n.none));
+  show("#result", true);
+  countUp();
+}
+
+function chosen(){ return (state.plan || []).filter(function(r){ return r.on && r.state === "make"; }); }
+function countUp(){
+  var n = chosen().length;
+  $("#go").disabled = n === 0;
+  $("#go").textContent = n ? "Create these " + n + " work orders in Skimmer" : "Nothing ticked";
+}
+
+/* ───────────────────────── create ───────────────────────── */
+async function go(){
+  var rows = chosen();
+  if (!rows.length) return;
+  var typeId = $("#type").value;
+  var typeName = $("#type").selectedOptions[0].textContent;
+  var date = $("#date").value;
+  var techId = $("#tech").value;
+  var techName = techId ? $("#tech").selectedOptions[0].textContent : "nobody";
+  var needed = norm($("#needed").value);
+  var minutes = $("#minutes").value === "" ? null : Number($("#minutes").value);
+
+  if (!confirm(
+    "Create " + rows.length + " × \"" + typeName + "\" in Skimmer\n" +
+    "Service date: " + date + "\n" +
+    "Assigned to: " + techName + "\n\n" +
+    "Skimmer has no undo for this."
+  )) return;
+
+  try { localStorage.setItem(LS.text, JSON.stringify({ type: typeId, needed: needed })); } catch (e) {}
+
+  $("#go").disabled = true;
+  show("#progress", true);
+  $("#pbar").max = rows.length;
+
+  var made = [], failed = [], unsure = [];
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i];
+    $("#pbar").value = i;
+    text("#goline", "Creating " + (i + 1) + " of " + rows.length + " — " + r.name);
+    var body = {
+      workOrderTypeId: typeId,
+      customerId: r.customerId,
+      serviceLocationId: r.locationId,
+      serviceDate: date
+    };
+    if (techId) body.leadTechId = techId;
+    if (needed) body.workNeeded = needed;
+    if (minutes != null && !isNaN(minutes)) body.estimatedMinutes = minutes;
+    try {
+      /* retries: 0 — see rule 1. */
+      var out = await call("POST", "/WorkOrders", body, { retries: 0 });
+      made.push({ name: r.name, pool: r.pool, id: out && out.id });
+    } catch (e) {
+      if (e.unconfirmed) unsure.push({ name: r.name, pool: r.pool, locationId: r.locationId, why: e.message });
+      else failed.push({ name: r.name, pool: r.pool, why: e.message });
+    }
+    await sleep(PACE_MS);
+  }
+  $("#pbar").value = rows.length;
+
+  /* An unconfirmed write is settled by READING, never by sending again. */
+  if (unsure.length){
+    text("#goline", "Checking " + unsure.length + " that did not answer…");
+    try {
+      var after = await pageAll("/WorkOrders/search",
+        "WorkOrderTypeId==" + typeId + ",ServiceDate>=" + date + ",ServiceDate<=" + date);
+      var now = new Set(after.filter(function(w){ return !w.deleted; })
+        .map(function(w){ return w.serviceLocationId; }));
+      unsure.forEach(function(u){
+        if (now.has(u.locationId)) made.push({ name: u.name, pool: u.pool, id: "(confirmed by re-reading)" });
+        else failed.push({ name: u.name, pool: u.pool, why: u.why + " Not in Skimmer — create this one by hand." });
+      });
+      unsure = [];
+    } catch (e) { /* leave them listed as unsure below */ }
+  }
+
+  show("#progress", false);
+  receipt(typeName, date, techName, made, failed, unsure);
+}
+
+function receipt(typeName, date, techName, made, failed, unsure){
+  var when = new Date().toLocaleString();
+  var lines = [];
+  lines.push("Heschmeyer Pools — work orders created");
+  lines.push(when);
+  lines.push("");
+  lines.push("Type:         " + typeName);
+  lines.push("Service date: " + date);
+  lines.push("Assigned to:  " + techName);
+  lines.push("");
+  lines.push("CREATED (" + made.length + ")");
+  made.forEach(function(m){ lines.push("  " + m.name + (m.pool ? " — " + m.pool : "")); });
+  if (failed.length){
+    lines.push("");
+    lines.push("NOT CREATED (" + failed.length + ") — do these by hand");
+    failed.forEach(function(f){ lines.push("  " + f.name + (f.pool ? " — " + f.pool : "") + " : " + f.why); });
+  }
+  if (unsure.length){
+    lines.push("");
+    lines.push("UNCERTAIN (" + unsure.length + ") — LOOK THESE UP IN SKIMMER BEFORE CREATING THEM AGAIN");
+    unsure.forEach(function(u){ lines.push("  " + u.name + (u.pool ? " — " + u.pool : "") + " : " + u.why); });
+  }
+  var txt = lines.join("\n");
+  state.receipt = { txt: txt, name: "work-orders-" + date + ".txt" };
+  $("#rbody").textContent = txt;
+
+  var sum = $("#rsum");
+  sum.className = "msg " + (failed.length || unsure.length ? "warn" : "ok");
+  sum.textContent = made.length + " created." +
+    (failed.length ? "  " + failed.length + " could not be created — they are listed below." : "") +
+    (unsure.length ? "  " + unsure.length + " uncertain — check Skimmer before retrying those." : "");
+  show("#sec-receipt", true);
+  $("#sec-receipt").scrollIntoView({ behavior: "smooth" });
+
+  /* Anything created is gone from the plan's "to create" set. */
+  state.plan.forEach(function(r){ if (r.on) { r.on = false; r.state = "skip"; r.why = "Created just now."; } });
+  drawPlan();
+}
+
+/* ───────────────────────── the day list ───────────────────────── */
+function loadDays(json, remember){
+  var rows = Array.isArray(json) ? json : (json && json.customers);
+  if (!Array.isArray(rows)) throw new Error("That file is not a customer list.");
+  state.days = rows.filter(function(c){ return c && c.name; }).map(function(c){
+    return { name: norm(c.name), days: norm(c.days), cat: norm(c.cat || c.category) };
+  });
+  if (remember){ try { localStorage.setItem(LS.days, JSON.stringify(state.days)); } catch (e) {} }
+  text("#daysnote", state.days.length + " customers, their service days and type.");
+  drawChips();
+}
+
+/* ───────────────────────── wiring ───────────────────────── */
+$("#connect").addEventListener("click", function(){
+  var k = norm($("#key").value);
+  if (k) connect(k);
+});
+$("#key").addEventListener("keydown", function(e){ if (e.key === "Enter") $("#connect").click(); });
+$("#forget").addEventListener("click", function(){
+  try { localStorage.removeItem(LS.key); } catch (e) {}
+  location.reload();
+});
+$("#type").addEventListener("change", function(){
+  var t = state.types.filter(function(x){ return x.id === $("#type").value; })[0];
+  if (t && t.defaultEstimatedMinutes) $("#minutes").value = t.defaultEstimatedMinutes;
+  suggestText();
+});
+$("#loaddays").addEventListener("click", function(){ $("#daysfile").click(); });
+$("#daysfile").addEventListener("change", function(){
+  var f = $("#daysfile").files[0];
+  if (!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    try { loadDays(JSON.parse(String(fr.result)), true); }
+    catch (e) { text("#daysnote", e.message); }
+  };
+  fr.readAsText(f);
+});
+$("#search").addEventListener("input", whoCount);
+$("#mode-group").addEventListener("click", function(){ setMode("group"); });
+$("#mode-pick").addEventListener("click", function(){ setMode("pick"); });
+$("#pick").addEventListener("input", drawPickHits);
+$("#pick").addEventListener("keydown", function(e){
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  var hits = pickHits($("#pick").value);
+  if (hits.length === 1){ addToBasket(custName(hits[0]), hits[0].id); $("#pick").value = ""; drawPickHits(); }
+});
+$("#addpaste").addEventListener("click", addPaste);
+$("#check").addEventListener("click", check);
+$("#all-on").addEventListener("click", function(){ setAll(true); });
+$("#all-off").addEventListener("click", function(){ setAll(false); });
+/* Only rows that can be created have a tick box, so this cannot arm a row
+   that already has a work order. */
+function setAll(on){
+  document.querySelectorAll("#table tbody input[type=checkbox]").forEach(function(cb){
+    var r = state.plan[Number(cb.dataset.i)];
+    if (!r || r.state !== "make") return;
+    cb.checked = on;
+    r.on = on;
+  });
+  countUp();
+}
+$("#go").addEventListener("click", go);
+$("#save").addEventListener("click", function(){
+  if (!state.receipt) return;
+  var b = new Blob([state.receipt.txt], { type: "text/plain" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = state.receipt.name;
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+});
+
+/* The work-needed text for a type: whatever the last one of that type said.
+   GET /WorkOrderTypes does not return a template, so the data is the template. */
+async function suggestText(){
+  var id = $("#type").value;
+  text("#suggest", "");
+  if (!id) return;
+  try {
+    var recent = await call("GET", "/WorkOrders/search?Page=1&PageSize=50&Filters=" +
+      encodeURIComponent("WorkOrderTypeId==" + id));
+    var seen = [];
+    (recent || []).forEach(function(w){
+      var t = norm(w.workNeeded);
+      if (t && seen.indexOf(t) < 0) seen.push(t);
+    });
+    if (!seen.length) return;
+    var s = $("#suggest");
+    s.textContent = "Last used for this type: ";
+    seen.slice(0, 3).forEach(function(t){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = t.length > 60 ? t.slice(0, 60) + "…" : t;
+      b.title = t;
+      b.addEventListener("click", function(){ $("#needed").value = t; });
+      s.appendChild(b);
+    });
+  } catch (e) { /* a suggestion is not worth an error */ }
+}
+
+/* ───────────────────────── start ───────────────────────── */
+(function start(){
+  var saved = null, savedDays = null;
+  try { saved = localStorage.getItem(LS.key); } catch (e) {}
+  try { savedDays = localStorage.getItem(LS.days); } catch (e) {}
+  if (savedDays){
+    try { loadDays(JSON.parse(savedDays), false); } catch (e) {}
+  }
+  if (saved) connect(saved);
+})();
+</script>
+</body>
+</html>
